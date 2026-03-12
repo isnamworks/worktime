@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>근무시간 계산기</title>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg:       #eef3ff;
+  --white:    #ffffff;
+  --blue:     #3b82f6;
+  --blue-d:   #1d4ed8;
+  --blue-l:   #eff6ff;
+  --blue-m:   #dbeafe;
+  --green:    #16a34a;
+  --green-l:  #f0fdf4;
+  --green-m:  #dcfce7;
+  --red:      #dc2626;
+  --red-l:    #fff1f2;
+  --amber:    #d97706;
+  --amber-l:  #fffbeb;
+  --amber-m:  #fef3c7;
+  --purple:   #7c3aed;
+  --purple-l: #f5f3ff;
+  --g50:  #f8fafc;
+  --g100: #f1f5f9;
+  --g200: #e2e8f0;
+  --g300: #cbd5e1;
+  --g400: #94a3b8;
+  --g500: #64748b;
+  --g700: #334155;
+  --g900: #0f172a;
+  --sans: 'Pretendard', 'Noto Sans KR', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--g900);
+  min-height: 100vh;
+  font-size: 15px;
+}
+
+.app { max-width: 1080px; margin: 0 auto; padding: 28px 20px 60px; }
+
+/* ── HEADER ── */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 14px; margin-bottom: 22px;
+}
+.brand .eyebrow {
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 3px; text-transform: uppercase; color: var(--blue); margin-bottom: 4px;
+}
+.brand h1 { font-size: 26px; font-weight: 800; color: var(--g900); letter-spacing: -.5px; }
+
+.header-right { display: flex; align-items: center; gap: 10px; }
+
+/* month nav */
+.mnav {
+  display: flex; align-items: center; gap: 2px;
+  background: var(--white); border: 1.5px solid var(--g200);
+  border-radius: 99px; padding: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+.mnav button {
+  width: 36px; height: 36px; border: none; background: none;
+  border-radius: 50%; cursor: pointer; font-size: 20px; color: var(--g400);
+  display: flex; align-items: center; justify-content: center; transition: all .15s;
+}
+.mnav button:hover { background: var(--g100); color: var(--g900); }
+.mlabel {
+  font-family: var(--mono); font-size: 18px; font-weight: 700;
+  min-width: 114px; text-align: center; color: var(--g900);
+}
+
+/* holiday toggle */
+.hol-btn {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--white); border: 1.5px solid var(--g200); border-radius: 99px;
+  padding: 8px 16px 8px 12px; cursor: pointer; font-family: var(--sans);
+  font-size: 14px; font-weight: 600; color: var(--g700);
+  box-shadow: 0 1px 4px rgba(0,0,0,.06); transition: all .2s; white-space: nowrap;
+  position: relative;
+}
+.hol-btn:hover { border-color: var(--blue); color: var(--blue); }
+.hol-btn .hb-icon { font-size: 17px; }
+.hol-btn .hb-chev { font-size: 11px; color: var(--g400); transition: transform .25s; }
+.hol-btn.open { border-color: var(--blue); color: var(--blue); }
+.hol-btn.open .hb-chev { transform: rotate(180deg); }
+
+/* holiday panel */
+.hol-panel {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  width: 340px; background: var(--white); border: 1.5px solid var(--g200);
+  border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,.13);
+  z-index: 400; overflow: hidden;
+  animation: dropIn .2s cubic-bezier(.34,1.3,.64,1);
+}
+@keyframes dropIn {
+  from { opacity: 0; transform: scale(.93) translateY(-6px); }
+  to   { opacity: 1; transform: scale(1)   translateY(0); }
+}
+.hol-panel-inner { padding: 18px 18px 20px; }
+.hol-panel-ttl {
+  font-size: 13px; font-weight: 700; color: var(--g400);
+  letter-spacing: .3px; margin-bottom: 12px;
+}
+
+.tab-row {
+  display: flex; gap: 2px; background: var(--g100);
+  border-radius: 10px; padding: 3px; margin-bottom: 12px;
+}
+.tab {
+  flex: 1; border: none; background: none; border-radius: 8px;
+  padding: 8px 4px; font-family: var(--sans); font-size: 13px; font-weight: 600;
+  color: var(--g400); cursor: pointer; transition: all .15s;
+}
+.tab.on { background: var(--white); color: var(--g900); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+.hol-list { max-height: 200px; overflow-y: auto; margin-bottom: 12px; }
+.hol-list::-webkit-scrollbar { width: 4px; }
+.hol-list::-webkit-scrollbar-thumb { background: var(--g200); border-radius: 99px; }
+
+.hol-row {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 10px; border-radius: 9px; margin-bottom: 3px;
+  background: var(--g50); font-size: 13px; font-weight: 500;
+}
+.hol-row .hrd { font-family: var(--mono); font-weight: 700; color: var(--purple); font-size: 13px; }
+.hol-row .hrn { flex: 1; color: var(--g700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hol-row .hrb {
+  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px;
+}
+.hrb.nat  { background: var(--red-l);    color: var(--red); }
+.hrb.sub  { background: var(--amber-l);  color: var(--amber); }
+.hrb.cust { background: var(--purple-l); color: var(--purple); }
+.hol-row .hrdel {
+  background: none; border: none; color: var(--g300);
+  cursor: pointer; font-size: 17px; transition: color .15s; padding: 0 1px;
+}
+.hol-row .hrdel:hover { color: var(--red); }
+
+.empty-hol { text-align: center; padding: 18px 0 6px; font-size: 13px; color: var(--g400); }
+.empty-hol .ei { font-size: 22px; margin-bottom: 5px; }
+
+.add-form { display: flex; flex-direction: column; gap: 6px; }
+.add-row  { display: flex; gap: 6px; }
+.add-inp {
+  flex: 1; font-family: var(--sans); font-size: 13px; font-weight: 500;
+  background: var(--g50); border: 1.5px solid var(--g200); border-radius: 9px;
+  padding: 8px 10px; color: var(--g900); outline: none; transition: border-color .15s;
+}
+.add-inp:focus { border-color: var(--purple); background: var(--white); }
+.add-inp.dayi { width: 62px; flex: none; font-family: var(--mono); }
+.btn-add {
+  background: var(--purple); color: #fff; border: none;
+  border-radius: 9px; padding: 9px 14px; font-family: var(--sans);
+  font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity .2s;
+}
+.btn-add:hover { opacity: .85; }
+
+/* ── STATS ── */
+.stats-row {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 12px; margin-bottom: 14px;
+}
+@media (max-width: 680px) { .stats-row { grid-template-columns: 1fr 1fr; } }
+
+.sc {
+  background: var(--white); border-radius: 16px;
+  padding: 18px 18px 14px; box-shadow: 0 1px 5px rgba(0,0,0,.06);
+  border: 1.5px solid var(--g100); position: relative; overflow: hidden;
+}
+.sc::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--cc, var(--g200));
+}
+.sc.cb { --cc: var(--blue); }
+.sc.cg { --cc: var(--g300); }
+.sc.cgr { --cc: var(--green); }
+.sc.ca  { --cc: var(--amber); }
+.sc.cp  { --cc: var(--purple); }
+
+.slbl { font-size: 12px; font-weight: 600; color: var(--g400); margin-bottom: 8px; }
+.sval {
+  font-family: var(--mono); font-size: 22px; font-weight: 700;
+  color: var(--g900); line-height: 1;
+}
+.sval.blue   { color: var(--blue); }
+.sval.green  { color: var(--green); }
+.sval.amber  { color: var(--amber); }
+.sval.purple { color: var(--purple); }
+.ssub { font-size: 12px; color: var(--g400); margin-top: 5px; }
+
+.tgt-row { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+.tgt-inp {
+  font-family: var(--mono); font-size: 13px; font-weight: 600;
+  width: 72px; background: var(--g50); border: 1.5px solid var(--g200);
+  border-radius: 8px; padding: 5px 8px; color: var(--blue); outline: none;
+  transition: border-color .15s;
+}
+.tgt-inp:focus { border-color: var(--blue); }
+.tgt-btn {
+  font-family: var(--sans); font-size: 12px; font-weight: 700;
+  background: var(--blue); color: #fff; border: none;
+  border-radius: 8px; padding: 5px 11px; cursor: pointer; transition: opacity .2s;
+}
+.tgt-btn:hover { opacity: .85; }
+
+/* ── PROGRESS ── */
+.prog-wrap {
+  background: var(--white); border-radius: 14px;
+  padding: 14px 20px; margin-bottom: 18px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06); border: 1.5px solid var(--g100);
+  display: flex; align-items: center; gap: 14px;
+}
+.prog-lbl { font-size: 13px; font-weight: 600; color: var(--g400); white-space: nowrap; }
+.prog-track { flex: 1; height: 9px; background: var(--g100); border-radius: 99px; overflow: hidden; }
+.prog-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--blue), #60a5fa);
+  transition: width .5s cubic-bezier(.4,0,.2,1);
+}
+.prog-pct { font-family: var(--mono); font-size: 17px; font-weight: 700; color: var(--blue); min-width: 46px; text-align: right; }
+
+/* ── CALENDAR ── */
+.cal-wrap {
+  background: var(--white); border-radius: 18px;
+  border: 1.5px solid var(--g200); box-shadow: 0 2px 14px rgba(0,0,0,.07);
+  overflow: visible; position: relative;
+}
+
+.dow-row {
+  display: grid; grid-template-columns: repeat(7,1fr);
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  border-radius: 16px 16px 0 0;
+}
+.dow-cell {
+  text-align: center; padding: 14px 4px; font-size: 13px; font-weight: 700;
+  color: rgba(255,255,255,.75); letter-spacing: .3px;
+}
+.dow-cell.sun { color: #fca5a5; }
+.dow-cell.sat { color: #bfdbfe; }
+
+.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); }
+
+.cell {
+  border-right: 1px solid var(--g100); border-bottom: 1px solid var(--g100);
+  min-height: 112px; position: relative; cursor: pointer; transition: background .12s;
+}
+.cell:nth-child(7n) { border-right: none; }
+.cell.empty { cursor: default; pointer-events: none; background: var(--g50); }
+
+.cell.wknd:not(.hnat):not(.hsub):not(.hcust) {
+  background: var(--g50); cursor: default;
+}
+.cell:not(.empty):not(.wknd):not(.hnat):not(.hsub):hover { background: var(--blue-l); }
+.cell.hnat  { background: #fff5f5; cursor: default; }
+.cell.hsub  { background: #fffbf0; cursor: default; }
+.cell.hcust { background: var(--purple-l); cursor: pointer; }
+.cell.today { background: var(--blue-m) !important; }
+.cell.today .dnum { color: var(--blue) !important; }
+
+/* last row - no bottom border */
+.cell:nth-last-child(-n+7):not(.empty) { border-bottom: none; }
+
+.cin { padding: 9px 9px 8px; height: 100%; display: flex; flex-direction: column; gap: 3px; }
+
+.dline { display: flex; align-items: center; gap: 5px; }
+.dnum {
+  font-family: var(--mono); font-size: 15px; font-weight: 700;
+  color: var(--g500); line-height: 1;
+}
+.cell.sun .dnum { color: #ef4444; }
+.cell.sat .dnum { color: var(--blue); }
+.cell.wknd:not(.hnat):not(.hsub) .dnum { color: var(--g300); }
+
+.htag {
+  font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 4px;
+  max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.htag.nat  { background: rgba(220,38,38,.1);  color: #dc2626; }
+.htag.sub  { background: rgba(217,119,6,.1);   color: #d97706; }
+.htag.cust { background: rgba(124,58,237,.1);  color: #7c3aed; }
+
+.wblock { margin-top: 3px; display: flex; flex-direction: column; gap: 2px; }
+.wtime { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--g400); }
+.whrs {
+  display: inline-block; font-family: var(--mono); font-size: 12px; font-weight: 700;
+  padding: 2px 7px; border-radius: 6px;
+}
+.whrs.ok    { background: var(--green-m); color: var(--green); }
+.whrs.short { background: var(--amber-m); color: var(--amber); }
+.whrs.over  { background: var(--blue-m);  color: var(--blue); }
+
+/* ── POPOVER ── */
+.pop-ov { position: fixed; inset: 0; z-index: 150; }
+
+.popover {
+  position: absolute; z-index: 200;
+  background: var(--white); border: 1.5px solid var(--g200);
+  border-radius: 18px; padding: 20px 22px 22px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.16), 0 3px 10px rgba(0,0,0,.08);
+  width: 360px;
+  animation: popIn .18s cubic-bezier(.34,1.45,.64,1);
+}
+@keyframes popIn {
+  from { opacity:0; transform: scale(.88) translateY(-10px); }
+  to   { opacity:1; transform: scale(1)   translateY(0); }
+}
+
+.phead {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--g100);
+}
+.pdate { font-size: 17px; font-weight: 700; color: var(--g900); }
+.px {
+  width: 32px; height: 32px; background: var(--g100); border: none;
+  border-radius: 9px; cursor: pointer; font-size: 16px; color: var(--g400);
+  display: flex; align-items: center; justify-content: center; transition: all .15s;
+}
+.px:hover { background: var(--red-l); color: var(--red); }
+
+.pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.pfield label {
+  display: block; font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .8px; color: var(--g400); margin-bottom: 6px;
+}
+.pinp {
+  width: 100%; font-family: var(--mono); font-size: 16px; font-weight: 600;
+  background: var(--g50); border: 1.5px solid var(--g200);
+  border-radius: 10px; padding: 10px 12px; color: var(--g900); outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.pinp:focus {
+  border-color: var(--blue); background: var(--white);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+}
+
+.presult {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--green-l); border: 1.5px solid var(--green-m);
+  border-radius: 12px; padding: 12px 16px; margin-bottom: 14px;
+}
+.presult .rl { font-size: 13px; font-weight: 700; color: var(--g400); text-transform: uppercase; letter-spacing: .5px; }
+.presult .rv { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--green); }
+
+.pbtns { display: flex; gap: 8px; }
+.bsave {
+  flex: 1; background: var(--blue); color: #fff; border: none;
+  border-radius: 11px; padding: 13px; font-family: var(--sans); font-size: 15px;
+  font-weight: 700; cursor: pointer; transition: opacity .2s;
+}
+.bsave:hover { opacity: .88; }
+.bdel {
+  background: var(--red-l); color: var(--red); border: 1.5px solid rgba(220,38,38,.18);
+  border-radius: 11px; padding: 13px 16px; font-family: var(--sans); font-size: 15px;
+  font-weight: 700; cursor: pointer; transition: all .2s;
+}
+.bdel:hover { background: rgba(220,38,38,.12); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="brand">
+      <div class="eyebrow">Work Hours Tracker</div>
+      <h1>근무시간 계산기</h1>
+    </div>
+    <div class="header-right">
+      <!-- Holiday button + panel -->
+      <div style="position:relative" id="holRef">
+        <button class="hol-btn" id="holBtn" onclick="toggleHol()">
+          <span class="hb-icon">🗓</span>
+          <span>휴일 관리</span>
+          <span class="hb-chev">▼</span>
+        </button>
+      </div>
+      <!-- Month nav -->
+      <div class="mnav">
+        <button onclick="go(-1)">‹</button>
+        <div class="mlabel" id="mlbl"></div>
+        <button onclick="go(1)">›</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row" id="statsRow"></div>
+
+  <!-- PROGRESS -->
+  <div class="prog-wrap">
+    <span class="prog-lbl">월간 달성률</span>
+    <div class="prog-track"><div class="prog-fill" id="pFill" style="width:0%"></div></div>
+    <span class="prog-pct" id="pPct">0%</span>
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="cal-wrap" id="calWrap">
+    <div class="dow-row">
+      <div class="dow-cell sun">일</div>
+      <div class="dow-cell">월</div>
+      <div class="dow-cell">화</div>
+      <div class="dow-cell">수</div>
+      <div class="dow-cell">목</div>
+      <div class="dow-cell">금</div>
+      <div class="dow-cell sat">토</div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+</div>
+
+<script>
+/* ─── STATE ─── */
+const TODAY = new Date();
+let CY = TODAY.getFullYear(), CM = TODAY.getMonth()+1;
+let holOpen = false, holTab = 'nat', popKey = null;
+
+let work    = JSON.parse(localStorage.getItem('wh2_work')    || '{}');
+let targets = JSON.parse(localStorage.getItem('wh2_tgt')     || '{}');
+let custom  = JSON.parse(localStorage.getItem('wh2_cust')    || '[]');
+if (custom.length && typeof custom[0]==='string')
+  custom = custom.map(d=>({date:d,name:'직접입력'}));
+
+function save() {
+  localStorage.setItem('wh2_work', JSON.stringify(work));
+  localStorage.setItem('wh2_tgt',  JSON.stringify(targets));
+  localStorage.setItem('wh2_cust', JSON.stringify(custom));
+}
+
+/* ─── HOLIDAYS ─── */
+const HC={};
+function buildH(y){
+  const h={},s=new Set();
+  const a=(md,n)=>{h[`${y}-${md}`]=n;};
+  const as=(md,n)=>{a(md,n);s.add(`${y}-${md}`);};
+  if(y===2024){
+    a('01-01','신정');a('02-09','설날 연휴');a('02-10','설날');a('02-11','설날 연휴');
+    as('02-12','설날 대체');a('03-01','삼일절');a('04-10','총선');
+    a('05-05','어린이날');as('05-06','어린이날 대체');a('05-15','부처님오신날');
+    a('06-06','현충일');a('08-15','광복절');
+    a('09-16','추석 연휴');a('09-17','추석');a('09-18','추석 연휴');
+    a('10-03','개천절');a('10-09','한글날');a('12-25','성탄절');
+  } else if(y===2025){
+    a('01-01','신정');a('01-28','설날 연휴');a('01-29','설날');a('01-30','설날 연휴');
+    a('03-01','삼일절');as('03-03','삼일절 대체');
+    a('05-05','어린이날');a('05-06','부처님오신날');
+    a('06-06','현충일');a('08-15','광복절');
+    a('10-03','개천절');a('10-05','추석 연휴');a('10-06','추석');a('10-07','추석 연휴');
+    a('10-09','한글날');a('12-25','성탄절');
+  } else if(y===2026){
+    a('01-01','신정');
+    a('02-16','설날 연휴');a('02-17','설날');a('02-18','설날 연휴');as('02-19','설날 대체');
+    a('03-01','삼일절');as('03-02','삼일절 대체');
+    a('05-05','어린이날');a('05-24','부처님오신날');as('05-25','부처님오신날 대체');
+    a('06-03','지방선거');a('06-06','현충일');a('07-17','제헌절');a('08-15','광복절');
+    as('08-17','광복절 대체');
+    a('09-24','추석 연휴');a('09-25','추석');a('09-26','추석 연휴');
+    a('10-03','개천절');as('10-05','개천절 대체');a('10-09','한글날');a('12-25','성탄절');
+  } else {
+    [['01-01','신정'],['03-01','삼일절'],['05-05','어린이날'],['06-06','현충일'],
+     ['07-17','제헌절'],['08-15','광복절'],['10-03','개천절'],['10-09','한글날'],['12-25','성탄절']]
+    .forEach(([md,n])=>a(md,n));
+    Object.keys(h).forEach(ds=>{
+      const dw=new Date(ds).getDay();
+      if(dw===0||dw===6){
+        const nd=new Date(ds);nd.setDate(nd.getDate()+(dw===0?1:2));
+        const nk=nd.toISOString().slice(0,10);
+        if(!h[nk]){h[nk]=h[ds]+' 대체';s.add(nk);}
+      }
+    });
+  }
+  return {h,s};
+}
+const gHD = y=>{ if(!HC[y])HC[y]=buildH(y); return HC[y]; };
+const gNH = y=>gHD(y).h;
+const gSH = y=>gHD(y).s;
+
+/* ─── DATE UTILS ─── */
+const pad = n=>String(n).padStart(2,'0');
+const dk  = (y,m,d)=>`${y}-${pad(m)}-${pad(d)}`;
+const mk  = (y,m)=>`${y}-${pad(m)}`;
+const DW  = ['일','월','화','수','목','금','토'];
+
+const isWk  = (y,m,d)=>{ const w=new Date(y,m-1,d).getDay();return w===0||w===6; };
+const isNat = (y,m,d)=>{ const k=dk(y,m,d);return !!gNH(y)[k]&&!gSH(y).has(k); };
+const isSub = (y,m,d)=>gSH(y).has(dk(y,m,d));
+const isCus = (y,m,d)=>custom.some(h=>h.date===dk(y,m,d));
+const isHol = (y,m,d)=>{ const k=dk(y,m,d);return !!gNH(y)[k]||gSH(y).has(k)||custom.some(h=>h.date===k); };
+const holNm = (y,m,d)=>{
+  const k=dk(y,m,d),nh=gNH(y),sh=gSH(y),ch=custom.find(h=>h.date===k);
+  return nh[k]||(sh.has(k)?'대체공휴일':null)||(ch?ch.name:null);
+};
+const nDays = (y,m)=>new Date(y,m,0).getDate();
+function wDays(y,m){
+  let c=0;
+  for(let d=1;d<=nDays(y,m);d++) if(!isWk(y,m,d)&&!isHol(y,m,d))c++;
+  return c;
+}
+
+/* ─── COMPUTE ─── */
+// 실근무 = (퇴근 - 출근) + 부재(연차) - 휴게
+// 예) 9:56 출근 13:08 퇴근, 연차 4h, 휴게 0분 → 3h12m + 4h - 0 = 7h12m
+function cH(e){
+  if(!e||!e.i||!e.o)return null;
+  const[ih,im]=e.i.split(':').map(Number),[oh,om]=e.o.split(':').map(Number);
+  let t=(oh*60+om)-(ih*60+im);
+  if(t<=0)return null;
+  t+=(parseFloat(e.a)||0)*60;
+  t-=(e.b!==undefined?parseFloat(e.b):60);
+  return Math.max(0,t/60);
+}
+function fH(h){
+  if(h===null||isNaN(h))return '--';
+  const s=h<0?'-':'',a=Math.abs(h);
+  return `${s}${Math.floor(a)}h ${pad(Math.round((a-Math.floor(a))*60))}m`;
+}
+
+/* ─── STATS ─── */
+function mStats(){
+  const wd=wDays(CY,CM),tgt=targets[mk(CY,CM)]||wd*8;
+  let done=0;
+  for(let d=1;d<=nDays(CY,CM);d++){const h=cH(work[dk(CY,CM,d)]);if(h!==null)done+=h;}
+  return{tgt,done,remain:tgt-done,wd};
+}
+
+function renderStats(){
+  const{tgt,done,remain,wd}=mStats();
+  const pct=tgt>0?Math.min(Math.round(done/tgt*100),100):0;
+  const over=remain<0;
+  G('pFill').style.width=pct+'%';
+  G('pPct').textContent=pct+'%';
+  const ct=targets[mk(CY,CM)];
+  G('statsRow').innerHTML=`
+    <div class="sc cb">
+      <div class="slbl">목표 근무시간</div>
+      <div class="sval blue">${fH(tgt)}</div>
+      <div class="tgt-row">
+        <input class="tgt-inp" id="tgtIn" type="number" value="${ct||''}" placeholder="${wd*8}" min="1" max="500">
+        <button class="tgt-btn" onclick="setTgt()">설정</button>
+      </div>
+    </div>
+    <div class="sc cg">
+      <div class="slbl">이달 근무일수</div>
+      <div class="sval">${wd}일</div>
+      <div class="ssub">공휴일·주말 제외</div>
+    </div>
+    <div class="sc cgr">
+      <div class="slbl">달성 근무시간</div>
+      <div class="sval green">${fH(done)}</div>
+      <div class="ssub">${pct}% 달성</div>
+    </div>
+    <div class="sc ${over?'cp':'ca'}">
+      <div class="slbl">${over?'초과 근무':'남은 근무시간'}</div>
+      <div class="sval ${over?'purple':'amber'}">${fH(Math.abs(remain))}</div>
+      <div class="ssub">${over?'🎉 목표 초과':'목표까지 남음'}</div>
+    </div>`;
+}
+function setTgt(){
+  const v=parseFloat(G('tgtIn')?.value);
+  if(v>0){targets[mk(CY,CM)]=v;save();renderAll();}
+}
+
+/* ─── CALENDAR ─── */
+function renderCal(){
+  const grid=G('calGrid'), days=nDays(CY,CM);
+  const first=new Date(CY,CM-1,1).getDay();
+  let html='';
+  for(let i=0;i<first;i++) html+=`<div class="cell empty"></div>`;
+  for(let d=1;d<=days;d++){
+    const key=dk(CY,CM,d), dw=new Date(CY,CM-1,d).getDay();
+    const nat=isNat(CY,CM,d),sub=isSub(CY,CM,d),cus=isCus(CY,CM,d);
+    const hol=isHol(CY,CM,d),wk=isWk(CY,CM,d);
+    const sun=dw===0,sat=dw===6;
+    const tod=CY===TODAY.getFullYear()&&CM===TODAY.getMonth()+1&&d===TODAY.getDate();
+    const e=work[key], hrs=cH(e), hn=holNm(CY,CM,d);
+
+    let cls='cell';
+    if(nat) cls+=' hnat'; else if(sub) cls+=' hsub'; else if(cus) cls+=' hcust'; else if(wk) cls+=' wknd';
+    if(tod) cls+=' today';
+    if(sun) cls+=' sun'; if(sat) cls+=' sat';
+
+    const canClick=!nat&&!sub&&!(wk&&!cus);
+    let tagH='';
+    if(hn){ const tc=nat?'nat':sub?'sub':'cust'; tagH=`<span class="htag ${tc}">${hn}</span>`; }
+    let wH='';
+    if(e&&e.i&&(!hol||cus)){  // 직접입력(연차) 날도 근무시간 표시
+      const bc=hrs===null?'ok':hrs<7.9?'short':hrs>8.1?'over':'ok';
+      wH=`<div class="wblock"><div class="wtime">${e.i}→${e.o}</div>${hrs!==null?`<span class="whrs ${bc}">${fH(hrs)}</span>`:''}</div>`;
+    }
+    html+=`<div class="${cls}"${canClick?` onclick="cellCk(event,'${key}')" data-key="${key}"`:''}><div class="cin"><div class="dline"><span class="dnum">${d}</span>${tagH}</div>${wH}</div></div>`;
+  }
+  const tot=first+days;
+  for(let i=0;i<(tot%7===0?0:7-tot%7);i++) html+=`<div class="cell empty"></div>`;
+  grid.innerHTML=html;
+}
+
+/* ─── POPOVER ─── */
+function cellCk(ev,key){
+  ev.stopPropagation();
+  if(popKey===key){closePop();return;}
+  closePop(true);
+  openPop(key);
+}
+
+function openPop(key){
+  popKey=key;
+  const [y,m,d]=key.split('-').map(Number);
+  const dow=new Date(y,m-1,d).getDay();
+  const dw=DW[dow];
+  const isFri=dow===5;
+  const e=work[key]||(isFri?{i:'09:00',o:'18:00',a:0,b:60}:{}), hrs=cH(e);
+
+  const cellEl=document.querySelector(`.cell[data-key="${key}"]`);
+  if(!cellEl) return;
+
+  const pop=document.createElement('div');
+  pop.className='popover'; pop.id='thePop';
+  pop.onclick=ev=>ev.stopPropagation();
+  pop.innerHTML=`
+    <div class="phead">
+      <span class="pdate">${m}월 ${d}일 (${dw})</span>
+      <button class="px" onclick="closePop()">✕</button>
+    </div>
+    <div class="pgrid">
+      <div class="pfield"><label>출근</label><input class="pinp" type="time" id="pi" value="${e.i||'09:00'}" oninput="prvH()"></div>
+      <div class="pfield"><label>퇴근</label><input class="pinp" type="time" id="po" value="${e.o||'18:00'}" oninput="prvH()"></div>
+      <div class="pfield"><label>부재(시간)</label><input class="pinp" type="number" id="pa" value="${e.a||0}" min="0" max="8" step="0.5" oninput="prvH()"></div>
+      <div class="pfield"><label>휴게(분)</label><input class="pinp" type="number" id="pb" value="${e.b!==undefined?e.b:60}" min="0" max="120" step="10" oninput="prvH()"></div>
+    </div>
+    <div class="presult"><span class="rl">실근무</span><span class="rv" id="prv">${hrs!==null?fH(hrs):'--'}</span></div>
+    <div class="pbtns">
+      <button class="bsave" onclick="saveE('${key}')">저장</button>
+      ${e.i?`<button class="bdel" onclick="delE('${key}')">삭제</button>`:''}
+    </div>`;
+
+  // positioning
+  const cw=G('calWrap');
+  const cwR=cw.getBoundingClientRect(), cR=cellEl.getBoundingClientRect();
+  const relTop=cR.top-cwR.top, relLeft=cR.left-cwR.left;
+  const spaceBelow=window.innerHeight-cR.bottom;
+
+  if(spaceBelow<310){ pop.style.bottom=(cwR.height-relTop+4)+'px'; }
+  else               { pop.style.top=(relTop+cR.height+4)+'px'; }
+
+  const rightEdge=relLeft+368;
+  if(rightEdge>cwR.width-8) pop.style.right='8px';
+  else pop.style.left=Math.max(4,relLeft)+'px';
+
+  cw.appendChild(pop);
+
+  const ov=document.createElement('div');
+  ov.className='pop-ov'; ov.id='pOv'; ov.onclick=()=>closePop();
+  document.body.appendChild(ov);
+
+  G('pi')?.focus();
+}
+
+function closePop(silent){
+  G('thePop')?.remove(); G('pOv')?.remove();
+  if(!silent) popKey=null;
+}
+function prvH(){
+  const e={i:G('pi')?.value,o:G('po')?.value,a:G('pa')?.value,b:G('pb')?.value};
+  const rv=G('prv'); if(rv){ const h=cH(e); rv.textContent=h!==null?fH(h):'--'; }
+}
+function saveE(key){
+  work[key]={i:G('pi').value,o:G('po').value,a:G('pa').value,b:G('pb').value};
+  save();closePop();renderAll();
+}
+function delE(key){ delete work[key]; save();closePop();renderAll(); }
+
+/* ─── HOLIDAY PANEL ─── */
+function toggleHol(){
+  holOpen=!holOpen;
+  G('holBtn').classList.toggle('open',holOpen);
+  const ex=G('holPanel');
+  if(ex){ex.remove(); return;}
+  renderHolPanel();
+  setTimeout(()=>document.addEventListener('click',holOutside,{once:true}),0);
+}
+function holOutside(e){
+  if(!G('holRef')?.contains(e.target)){
+    G('holPanel')?.remove();
+    G('holBtn')?.classList.remove('open');
+    holOpen=false;
+  }
+}
+function switchHolTab(t){ holTab=t; renderHolPanel(); }
+
+function renderHolPanel(){
+  G('holPanel')?.remove();
+  const p=document.createElement('div');
+  p.className='hol-panel'; p.id='holPanel';
+  p.onclick=e=>e.stopPropagation();
+
+  const cmk=mk(CY,CM), nh=gNH(CY), sh=gSH(CY);
+  let listH='', addH='';
+
+  if(holTab==='nat'){
+    const nEs=Object.entries(nh).filter(([k])=>k.startsWith(cmk)&&!sh.has(k)).map(([k,n])=>({k,n,t:'nat'}));
+    const sEs=[...sh].filter(k=>k.startsWith(cmk)).map(k=>({k,n:nh[k]||'대체공휴일',t:'sub'}));
+    const all=[...nEs,...sEs].sort((a,b)=>a.k.localeCompare(b.k));
+    if(!all.length) listH=`<div class="empty-hol"><div class="ei">🎌</div>이달 공휴일 없음</div>`;
+    else listH=all.map(({k,n,t})=>{
+      const d=parseInt(k.split('-')[2]),dw=DW[new Date(k).getDay()];
+      return `<div class="hol-row"><span class="hrd">${pad(d)}(${dw})</span><span class="hrn">${n}</span><span class="hrb ${t==='sub'?'sub':'nat'}">${t==='sub'?'대체':'공휴일'}</span></div>`;
+    }).join('');
+  } else {
+    const cs=custom.filter(h=>h.date.startsWith(cmk)).sort((a,b)=>a.date.localeCompare(b.date));
+    if(!cs.length) listH=`<div class="empty-hol"><div class="ei">📝</div>직접 입력한 휴일 없음</div>`;
+    else listH=cs.map(({date,name})=>{
+      const d=parseInt(date.split('-')[2]),dw=DW[new Date(date).getDay()];
+      return `<div class="hol-row"><span class="hrd">${pad(d)}(${dw})</span><span class="hrn">${name}</span><span class="hrb cust">입력</span><button class="hrdel" onclick="rmCust('${date}')">×</button></div>`;
+    }).join('');
+    addH=`<div class="add-form"><div class="add-row"><input class="add-inp dayi" id="aDay" type="number" placeholder="일" min="1" max="31"><input class="add-inp" id="aNm" type="text" placeholder="내용 (예: 창립기념일)"></div><button class="btn-add" onclick="addCust()">+ 추가</button></div>`;
+  }
+
+  p.innerHTML=`<div class="hol-panel-inner">
+    <div class="hol-panel-ttl">휴일 관리 — ${CY}년 ${CM}월</div>
+    <div class="tab-row">
+      <button class="tab ${holTab==='nat'?'on':''}" onclick="switchHolTab('nat')">공휴일</button>
+      <button class="tab ${holTab==='cust'?'on':''}" onclick="switchHolTab('cust')">직접입력</button>
+    </div>
+    <div class="hol-list">${listH}</div>
+    ${addH}
+  </div>`;
+
+  G('holRef').appendChild(p);
+}
+
+function addCust(){
+  const day=parseInt(G('aDay')?.value), name=(G('aNm')?.value||'').trim();
+  if(!day||day<1||day>31) return;
+  const date=dk(CY,CM,day);
+  if(!custom.some(h=>h.date===date)){
+    custom.push({date,name:name||'직접입력'});
+    save(); renderAll(); renderHolPanel();
+  }
+}
+function rmCust(date){ custom=custom.filter(h=>h.date!==date); save(); renderAll(); renderHolPanel(); }
+
+/* ─── NAV ─── */
+function go(dir){
+  CM+=dir; if(CM<1){CM=12;CY--;} if(CM>12){CM=1;CY++;}
+  closePop(); renderAll();
+}
+
+/* ─── UTIL ─── */
+const G=id=>document.getElementById(id);
+
+/* ─── INIT ─── */
+function renderAll(){
+  G('mlbl').textContent=`${CY}.${pad(CM)}`;
+  renderStats(); renderCal();
+  if(holOpen) renderHolPanel();
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.popover')&&!e.target.closest('.cell')) closePop();
+});
+renderAll();
+</script>
+</body>
+</html>
